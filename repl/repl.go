@@ -26,5 +26,7 @@ func Start(in io.Reader, out io.Writer) {
 		for tkn := l.NextToken(); tkn.Type != token.EOF; tkn = l.NextToken() {
 			fmt.Fprintf(out, "%+v\n", tkn)
 		}
+
+		//todo: needs to call the response from parser
 	}
 }
