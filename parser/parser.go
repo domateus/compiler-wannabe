@@ -49,6 +49,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.TRUE, p.parseBoolean)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
 	p.registerPrefix(token.IF, p.parseIfExpression)
+	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 	// registra os infixos
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
@@ -65,6 +66,7 @@ func New(l *lexer.Lexer) *Parser {
 }
 
 func (p *Parser) parseIdentifier() ast.Expression {
+	defer untrace(trace("parseIdentifier " + p.curToken.Literal))
 	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 }
 
@@ -72,13 +74,20 @@ func (p *Parser) Errors() []string {
 	return p.errors
 }
 
+func (p *Parser) addError(msg string) {
+	p.errors = append(p.errors, "Erro sintático.\n"+msg)
+
+}
+
 func (p *Parser) peekError(t token.TokenType) {
-	msg := fmt.Sprintf("expected next token to be %s, got %s instead",
-		t, p.peekToken.Type)
+	msg := fmt.Sprintf("Erro sintático.\nEsperava o token: %s, mas recebeu: %s", t, p.peekToken.Type)
 	p.errors = append(p.errors, msg)
 }
 
 func (p *Parser) nextToken() {
+	if token.EOF == p.curToken.Type {
+		panic("Tentou ler após fim do programa")
+	}
 	p.curToken = p.peekToken
 	p.peekToken = p.l.NextToken()
 }
@@ -108,16 +117,19 @@ func (p *Parser) parseStatement() ast.Statement {
 }
 
 func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
-	defer untrace(trace("parseInfixExpression"))
+	trace("parseInfixExpression " + p.curToken.Literal)
+	// startTracing := trace("parseInfixExpression " + p.curToken.Literal)
 	exp := &ast.InfixExpression{Token: p.curToken, Operator: p.curToken.Literal, Left: left}
 	precedence := p.curPrecedence()
 	p.nextToken()
 	exp.Right = p.parseExpression(precedence)
+	decIdent()
+	// untrace(startTracing + " " + exp.Right.String())
 	return exp
 }
 
 func (p *Parser) parsePrefixExpression() ast.Expression {
-	defer untrace(trace("parsePrefixExpression"))
+	defer untrace(trace("parsePrefixExpression "))
 	exp := &ast.PrefixExpression{Token: p.curToken, Operator: p.curToken.Literal}
 	p.nextToken()
 	exp.Right = p.parseExpression(PREFIX)
@@ -140,9 +152,11 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 // <prefix> <expression> <infix> <expression>
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	defer untrace(trace("parseExpression"))
+	tracePrint(string(p.curToken.Type))
 	prefix := p.prefixParseFns[p.curToken.Type]
 	if prefix == nil {
 		// tipo de token nao tem prefixo
+		p.addError("Token inválido para expressao")
 		return nil
 	}
 	leftExp := prefix()
@@ -156,7 +170,6 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		p.nextToken()
 		leftExp = infix(leftExp)
 	}
-	fmt.Println(leftExp)
 	return leftExp
 }
 
@@ -193,7 +206,7 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 }
 
 func (p *Parser) parseIntegerLiteral() ast.Expression {
-	defer untrace(trace("parseIntegerLiteral"))
+	startTracing := trace("parseIntegerLiteral " + p.curToken.Literal)
 	lit := &ast.IntegerLiteral{Token: p.curToken}
 	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
 	if err != nil {
@@ -202,6 +215,7 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 		return nil
 	}
 	lit.Value = value
+	untrace(startTracing)
 	return lit
 }
 
@@ -209,31 +223,45 @@ func (p *Parser) parseBoolean() ast.Expression {
 	return &ast.Boolean{Token: p.curToken, Value: p.curTokenIs(token.TRUE)}
 }
 
-func (p *Parser) parseIfExpression() ast.Expression {
-	expression := &ast.IfExpression{Token: p.curToken}
-	if !p.expectPeek(token.LPAREN) {
+func (p *Parser) parseGroupedExpression() ast.Expression {
+	p.nextToken()
+	exp := p.parseExpression(LOWEST)
+	if !p.expectPeek(token.RPAREN) {
+		// erro de sintaxe, nao fechou parenteses
 		return nil
 	}
+	return exp
+}
+
+func (p *Parser) parseIfExpression() ast.Expression {
+	defer untrace(trace("parseIfExpression"))
+	tracePrint(p.curToken.Literal)
+	expression := &ast.IfExpression{Token: p.curToken}
+	// primeiro valor da expressao
 	p.nextToken()
 	expression.Condition = p.parseExpression(LOWEST)
-	if !p.expectPeek(token.RPAREN) {
-		return nil
-	}
-	if !p.expectPeek(token.LBRACE) {
-		return nil
-	}
+	// avança para primeiro token após a expressao
+	p.nextToken()
 	expression.Consequence = p.parseBlockStatement()
+	fmt.Println("consequence: " + expression.Consequence.String())
 	if p.peekTokenIs(token.ELSE) {
 		p.nextToken()
+		expression.Alternative = &ast.Else{}
+		if p.peekTokenIs(token.IF) {
+			p.nextToken()
+			expression.Alternative.Condition = p.parseIfExpression()
+			return expression
+		}
 		if !p.expectPeek(token.LBRACE) {
 			return nil
 		}
-		expression.Alternative = p.parseBlockStatement()
+		expression.Alternative.Consequence = p.parseBlockStatement()
 	}
 	return expression
 }
 
 func (p *Parser) parseBlockStatement() *ast.BlockStatement {
+	defer untrace(trace("parseBlockStatement"))
 	block := &ast.BlockStatement{Token: p.curToken}
 	block.Statements = []ast.Statement{}
 	p.nextToken()
