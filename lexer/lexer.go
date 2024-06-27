@@ -93,8 +93,8 @@ func (l *Lexer) NextToken() token.Token {
 	return tkn
 }
 
-func newToken(tokerType token.TokenType, ch byte) token.Token {
-	return token.Token{Type: tokerType, Literal: string(ch)}
+func newToken(tokenType token.TokenType, ch byte) token.Token {
+	return token.Token{Type: tokenType, Literal: string(ch)}
 }
 
 func (l *Lexer) readIdentifier() string {
