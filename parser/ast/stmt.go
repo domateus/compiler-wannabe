@@ -56,3 +56,27 @@ func (bs *BlockStatement) String() string {
 	}
 	return out.String()
 }
+
+type ForStatement struct {
+	Token     token.Token
+	Condition Node
+	Before    Node
+	After     Node
+	Body      BlockStatement
+}
+
+func (f *ForStatement) statementNode() string { return "ForStatement" }
+func (f *ForStatement) TokenLiteral() string  { return f.Token.Literal }
+func (f *ForStatement) String() string {
+	var out bytes.Buffer
+	out.WriteString("for ")
+	if nil != f.Before {
+		out.WriteString(f.Before.String() + "; ")
+	}
+	out.WriteString(f.Condition.String())
+	if nil != f.After {
+		out.WriteString("; " + f.After.String())
+	}
+	out.WriteString(f.Body.String())
+	return out.String()
+}

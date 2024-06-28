@@ -1,6 +1,9 @@
 package lexer
 
-import "interpreter/token"
+import (
+	"fmt"
+	"interpreter/token"
+)
 
 type Lexer struct {
 	input        string
@@ -25,8 +28,17 @@ func (l *Lexer) readChar() {
 	l.readPosition++
 }
 
-func (l *Lexer) NextToken() token.Token {
+type LexError struct {
+	Message string
+}
+
+func (l *Lexer) noError() LexError {
+	return LexError{}
+}
+
+func (l *Lexer) NextToken() (token.Token, LexError) {
 	var tkn token.Token
+	err := l.noError()
 
 	l.skipWhitespace()
 
@@ -73,6 +85,13 @@ func (l *Lexer) NextToken() token.Token {
 		tkn = newToken(token.LBRACE, l.ch)
 	case '}':
 		tkn = newToken(token.RBRACE, l.ch)
+	case '[':
+		tkn = newToken(token.LBRACKET, l.ch)
+	case ']':
+		tkn = newToken(token.RBRACKET, l.ch)
+	case '"':
+		tkn.Type = token.STRING
+		tkn.Literal = l.readString()
 	case 0:
 		tkn.Literal = ""
 		tkn.Type = token.EOF
@@ -80,17 +99,18 @@ func (l *Lexer) NextToken() token.Token {
 		if isLetter(l.ch) {
 			tkn.Literal = l.readIdentifier()
 			tkn.Type = token.LookupIdent(tkn.Literal)
-			return tkn
+			return tkn, l.noError()
 		} else if isDigit(l.ch) {
 			tkn.Literal = l.readNumber()
 			tkn.Type = token.INT
-			return tkn
+			return tkn, l.noError()
 		} else {
 			tkn = newToken(token.ILLEGAL, l.ch)
+			err.Message = fmt.Sprintf("Erro léxico.\n\ttoken \" %s \" não é aceito na linguagem", tkn.Literal)
 		}
 	}
 	l.readChar()
-	return tkn
+	return tkn, err
 }
 
 func newToken(tokenType token.TokenType, ch byte) token.Token {
@@ -125,6 +145,17 @@ func (l *Lexer) readNumber() string {
 
 func isDigit(ch byte) bool {
 	return '0' <= ch && ch <= '9'
+}
+
+func (l *Lexer) readString() string {
+	position := l.position + 1
+	for {
+		l.readChar()
+		if l.ch == '"' || l.ch == 0 {
+			break
+		}
+	}
+	return l.input[position:l.position]
 }
 
 func (l *Lexer) peekChar() byte {
