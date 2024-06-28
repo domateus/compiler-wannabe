@@ -356,127 +356,6 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 	}
 }
 
-/* func TestOperatorPrecedenceParsing(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		//{
-		//	"-a * b",
-		//	"((-a) * b)",
-		//},
-		//{
-		//	"!-a",
-		//	"(!(-a))",
-		//},
-		//{
-		//	"a + b + c",
-		//	"((a + b) + c)",
-		//},
-		//{
-		//	"a + b - c",
-		//	"((a + b) - c)",
-		//},
-		//{
-		//	"a * b * c",
-		//	"((a * b) * c)",
-		//},
-		//{
-		//	"a * b / c",
-		//	"((a * b) / c)",
-		//},
-		//{
-		//	"a + b / c",
-		//	"(a + (b / c))",
-		//},
-		//{
-		//	"a + b * c + d / e - f",
-		//	"(((a + (b * c)) + (d / e)) - f)",
-		//},
-		//{
-		//	"3 + 4; -5 * 5",
-		//	"(3 + 4)((-5) * 5)",
-		//},
-		//{
-		//	"5 > 4 == 3 < 4",
-		//	"((5 > 4) == (3 < 4))",
-		//},
-		//{
-		//	"5 < 4 != 3 > 4",
-		//	"((5 < 4) != (3 > 4))",
-		//},
-		//{
-		//	"3 + 4 * 5 == 3 * 1 + 4 * 5",
-		//	"((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
-		//},
-		//{
-		//	"true",
-		//	"true",
-		//},
-		//{
-		//	"false",
-		//	"false",
-		//},
-		//{
-		//	"3 > 5 == false",
-		//	"((3 > 5) == false)",
-		//},
-		//{
-		//	"3 < 5 == true",
-		//	"((3 < 5) == true)",
-		//},
-		//todo: for some reason the next inputs will get an "invalid memory address or nil pointer reference" right before the end of parseExpression
-		//{
-		//	"1 + (2 + 3) + 4",
-		//	"((1 + (2 + 3)) + 4)",
-		//},
-		//{
-		//	"(5 + 5) * 2",
-		//	"((5 + 5) * 2)",
-		//},
-		//{
-		//	"2 / (5 + 5)",
-		//	"(2 / (5 + 5))",
-		//},
-		//{
-		//	"(5 + 5) * 2 * (5 + 5)",
-		//	"(((5 + 5) * 2) * (5 + 5))",
-		//},
-		//{
-		//	"-(5 + 5)",
-		//	"(-(5 + 5))",
-		//},
-		{
-			"!(true == true)",
-			"(!(true == true))",
-		},
-		//{
-		//	"a + add(b * c) + d",
-		//	"((a + add((b * c))) + d)",
-		//},
-		//{
-		//	"add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))",
-		//	"add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))",
-		//},
-		//{
-		//	"add(a + b + c * d / f + g)",
-		//	"add((((a + b) + ((c * d) / f)) + g))",
-		//},
-	}
-
-	for _, tt := range tests {
-		l := lexer.New(tt.input)
-		p := New(l)
-		program := p.ParseProgram()
-		checkParserErrors(t, p)
-
-		actual := program.String()
-		if actual != tt.expected {
-			t.Errorf("expected=%q, got=%q", tt.expected, actual)
-		}
-	}
-} */
-
 func TestBooleanExpression(t *testing.T) {
 	tests := []struct {
 		input           string
@@ -575,7 +454,7 @@ func TestIfElseIfExpression(t *testing.T) {
 		return
 	}
 
-	if len(exp.Alternative.Consequence.Statements) != 1 {
+	if len(alternativeExp.Consequence.Statements) != 1 {
 		fmt.Println(exp.String())
 		for _, stmt := range exp.Consequence.Statements {
 			fmt.Println(stmt.TokenLiteral())
@@ -585,7 +464,7 @@ func TestIfElseIfExpression(t *testing.T) {
 			len(exp.Consequence.Statements))
 	}
 
-	alternative, ok := exp.Alternative.Consequence.Statements[0].(*ast.ExpressionStatement)
+	alternative, ok := alternativeExp.Consequence.Statements[0].(*ast.ExpressionStatement)
 	if !ok {
 		t.Fatalf("Statements[0] is not ast.ExpressionStatement. got=%T",
 			exp.Alternative.Consequence.Statements[0])
