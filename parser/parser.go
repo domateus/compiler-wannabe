@@ -203,6 +203,7 @@ func (p *Parser) noPrefixParseFnError(t token.TokenType) {
 }
 
 func (p *Parser) parseLetStatement() *ast.LetStatement {
+	defer untrace(trace("parseLetStatement"))
 	stmt := &ast.LetStatement{Token: p.curToken}
 	if !p.expectPeek(token.IDENT) {
 		return nil
@@ -298,6 +299,7 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 }
 
 func (p *Parser) parseFunctionLiteral() ast.Expression {
+	defer untrace(trace("parseFunctionLiteral"))
 	lit := &ast.FunctionLiteral{Token: p.curToken}
 	if !p.expectPeek(token.LPAREN) {
 		return nil
@@ -319,6 +321,7 @@ func (p *Parser) parseArrayLiteral() ast.Expression {
 }
 
 func (p *Parser) parseFunctionParameters() []*ast.Identifier {
+	defer untrace(trace("parseFunctionParameters"))
 	identifiers := []*ast.Identifier{}
 	if p.peekTokenIs(token.RPAREN) {
 		p.nextToken()
